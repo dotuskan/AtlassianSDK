@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.atlassian.pom</groupId>
+        <artifactId>public-pom</artifactId>
+        <version>6.3.1</version>
+        <relativePath />
+    </parent>
+
+    <groupId>com.atlassian.plugins</groupId>
+    <artifactId>atlassian-plugins-osgi-testrunner-parent</artifactId>
+    <version>2.0.9</version>
+    <packaging>pom</packaging>
+
+    <name>Atlassian Plugins OSGi TestRunner Parent POM</name>
+
+    <modules>
+        <module>atlassian-plugins-osgi-testrunner</module>
+        <module>atlassian-plugins-osgi-testrunner-bundle</module>
+        <module>atlassian-osgi-testrunner-test-plugin</module>
+    </modules>
+
+    <scm>
+        <connection>scm:git:git@bitbucket.org:atlassian/atlassian-plugins-osgi-testrunner-parent.git</connection>
+        <developerConnection>scm:git:git@bitbucket.org:atlassian/atlassian-plugins-osgi-testrunner-parent.git</developerConnection>
+        <url>https://bitbucket.org/atlassian/atlassian-plugins-osgi-testrunner-parent</url>
+        <tag>atlassian-plugins-osgi-testrunner-parent-2.0.9</tag>
+    </scm>
+    <issueManagement>
+        <system>Jira</system>
+        <url>https://ecosystem.atlassian.net/browse/PTRUNNER</url>
+    </issueManagement>
+    <ciManagement>
+        <system>Bamboo</system>
+        <url>https://ecosystem-bamboo.internal.atlassian.com/browse/APOSGITR</url>
+    </ciManagement>
+
+    <properties>
+        <junit.bundle.version>1-atlassian-2</junit.bundle.version>
+        <junit.version>4.13.2</junit.version>
+        <!-- as a default we use version which is provided by AMPS -->
+        <junit.osgi.version>4.12</junit.osgi.version>
+        <osgi.manifest.version>1.0.0</osgi.manifest.version>
+        <jvm.opens />
+        <platform.version>6.5.18</platform.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Platform imports -->
+            <dependency>
+                <groupId>com.atlassian.platform.dependencies</groupId>
+                <artifactId>platform-internal-api</artifactId>
+                <version>${platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.platform.dependencies</groupId>
+                <artifactId>platform-public-api</artifactId>
+                <version>${platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.platform.dependencies</groupId>
+                <artifactId>platform-test-resources</artifactId>
+                <version>${platform.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- project modules -->
+            <dependency>
+                <groupId>com.atlassian.plugins</groupId>
+                <artifactId>atlassian-plugins-osgi-testrunner</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.plugins</groupId>
+                <artifactId>atlassian-plugins-osgi-testrunner-bundle</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.atlassian.plugins</groupId>
+                <artifactId>atlassian-osgi-testrunner-test-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.junit</artifactId>
+                <version>${junit.version}_${junit.bundle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.wink</groupId>
+                <artifactId>wink-client</artifactId>
+                <version>1.1.3-incubating</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <!-- exclude Hamcrest 1.3 -->
+                        <groupId>org.hamcrest</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest</artifactId>
+                <version>2.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>4.11.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <profiles>
+        <profile>
+            <id>jvm.opens.activation</id>
+            <activation>
+                <jdk>[17,)</jdk>
+            </activation>
+            <properties>
+                <jvm.opens>--add-opens=java.base/java.lang=ALL-UNNAMED</jvm.opens>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>com.atlassian.maven.plugins</groupId>
+                    <artifactId>amps-maven-plugin</artifactId>
+                    <version>8.13.6</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <enablePde>false</enablePde>
+                        <enableQuickReload>true</enableQuickReload>
+                        <product>refapp</product>
+                        <productVersion>${platform.version}</productVersion>
+                        <server>localhost</server>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <configuration>
+                        <argLine>${jvm.opens}</argLine>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <argLine>${jvm.opens}</argLine>
+                        <!-- Prevents JUnit 3 being used, which ignores @Test methods -->
+                        <junitArtifactName>org.apache.servicemix.bundles:org.apache.servicemix.bundles.junit</junitArtifactName>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

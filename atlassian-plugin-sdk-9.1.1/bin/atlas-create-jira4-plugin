@@ -1,0 +1,199 @@
+#!/bin/sh
+
+
+
+
+
+
+
+# Check for Help command #
+
+if [ $# -ge 1 ]; then
+    case "$1" in
+        "-?" | "-h" | "--help" | "-help" | "help" )
+            echo
+            echo "Usage: atlas-create-jira4-plugin [options]"
+            echo
+            echo "Creates a JIRA 4.x (or earlier) plugin."
+            echo
+                        echo "DEPRECATED"
+            echo "JIRA 4.x and earlier have reach End of Support - see https://confluence.atlassian.com/x/HQCID."
+            echo
+                                        echo "The following options are available:"
+                                                                                        echo "-a [value], --artifact-id [value]"
+                                                                echo "    Name of the project (corresponds to the Maven artifactId)."
+                    echo
+                                                                                        echo "-g [value], --group-id [value]"
+                                                                echo "    Identifier for the logical group of artifacts associated with the project (corresponds to the Maven groupId)."
+                    echo
+                                                                                        echo "-v [value], --version [value]"
+                                                                echo "    Version of the project (default is 1.0.0-SNAPSHOT)."
+                    echo
+                                                                                        echo "-p [value], --package [value]"
+                                                                echo "    Java package that will contain the plugin source code (default is group-id value)."
+                    echo
+                                                                                        echo "--non-interactive"
+                                                                echo "    Does not prompt the user for input. Turns off interactive mode."
+                    echo
+                                                        echo "-u [value], --maven-plugin-version [value]"
+                echo "    Maven AMPS plugin version to use (default is 9.1.1)"
+                        exit;;
+    esac
+fi
+
+# Determine the location of the script #
+
+# resolve symbolic links
+PRG="${0}"
+
+while [ -h "${PRG}" ] ; do
+  ls=`ls -ld "${PRG}"`
+  link=`expr "${ls}" : '.*-> \(.*\)$'`
+  if expr "${link}" : '/.*' > /dev/null; then
+    PRG="${link}"
+  else
+    PRG=`dirname "${PRG}"`/"${link}"
+  fi
+done
+
+PRGDIR=`dirname "${PRG}"`
+
+# Identify Maven location relative to script #
+
+ATLAS_HOME=`cd "${PRGDIR}" && pwd -P`
+ATLAS_HOME=`dirname "${ATLAS_HOME}"`
+export ATLAS_HOME
+ATLAS_VERSION="9.1.1"
+export ATLAS_VERSION
+AMPS_PLUGIN_VERSION="9.1.1"
+export AMPS_PLUGIN_VERSION
+M2_HOME="${ATLAS_HOME}"/apache-maven-3.9.8
+MAVEN_EXECUTABLE="${M2_HOME}"/bin/mvn
+
+if [ -n "${ATLAS_MVN}" ]; then
+    MAVEN_EXECUTABLE="${ATLAS_MVN}"
+fi
+
+
+
+# Check that target executable exists
+if [ ! -x "${MAVEN_EXECUTABLE}" ]; then
+  echo "Cannot find ${MAVEN_EXECUTABLE}"
+  echo "This file is needed to run this program"
+  exit 1
+fi
+
+# Transform Parameters into Maven Parameters #
+
+export MAVEN_OPTS="-Xms512M -Xmx768M $ATLAS_OPTS"
+MVN_PARAMS="-gs ${M2_HOME}/conf/settings.xml"
+
+# get the AMPS Version to use from the POM if the POM exists #
+
+NEW_PLUGIN_REGEX="(bamboo|bitbucket|confluence|crowd|fecru|jira|refapp|amps)-maven-plugin"
+OLD_PLUGIN_REGEX="maven-(bamboo|confluence|crowd|fecru|jira|stash|refapp|amps)-plugin"
+PLUGIN_RESOLVE_REGEX="com\.atlassian\.maven\.plugins:.*((${NEW_PLUGIN_REGEX})|(${OLD_PLUGIN_REGEX}))"
+RESOLVED_AMPS_PLUGINS=""
+    if [ -e pom.xml ]; then
+        echo "[INFO] Project POM found"
+        echo "[INFO] Resolving plugin info, may take a while on the first run."
+        RESOLVED_AMPS_PLUGINS=$(${MAVEN_EXECUTABLE} --batch-mode org.apache.maven.plugins:maven-dependency-plugin:3.1.2:resolve-plugins -DincludeGroupIds=com.atlassian.maven.plugins -DexcludeTransitive=true)
+        case "${RESOLVED_AMPS_PLUGINS}" in
+            *ERROR*)
+                echo "${RESOLVED_AMPS_PLUGINS}"
+                exit 1
+                ;;
+            *) ;;
+        esac
+        AMPS_PLUGIN_VERSION=$(echo "${RESOLVED_AMPS_PLUGINS}" | grep -E "${PLUGIN_RESOLVE_REGEX}" | sed "s/.*:\([0-9].*\):.*/\1/" | head -n 1)
+        echo "[INFO] Project defined AMPS version detected: ${AMPS_PLUGIN_VERSION}"
+    fi
+
+while [ $# -gt 0 ]
+do
+    case "$1" in
+                     "-a" |  "--artifact-id")
+                                                    MVN_PARAMS="${MVN_PARAMS} -DartifactId='${2}'"
+                    shift 2;;
+                                     "-g" |  "--group-id")
+                                                    MVN_PARAMS="${MVN_PARAMS} -DgroupId='${2}'"
+                    shift 2;;
+                                     "-v" |  "--version")
+                                                    MVN_PARAMS="${MVN_PARAMS} -Dversion='${2}'"
+                    shift 2;;
+                                     "-p" |  "--package")
+                                                    MVN_PARAMS="${MVN_PARAMS} -Dpackage='${2}'"
+                    shift 2;;
+                                     "--non-interactive")
+                                                    MVN_PARAMS="${MVN_PARAMS} -DinteractiveMode=false"
+                    shift 1;;
+                                            "-u" | "--maven-plugin-version")
+                AMPS_PLUGIN_VERSION="${2}"
+                MVN_PARAMS="$MVN_PARAMS -Damps.version=$AMPS_PLUGIN_VERSION"
+                shift 2;;
+                *)
+                        MVN_PARAMS="${MVN_PARAMS} ${1}"
+            shift 1;;     esac
+done
+
+case $AMPS_PLUGIN_VERSION in
+    4.*|5.*|6.*|7.*)
+        MVN_PLUGIN="maven-jira-plugin"
+        break
+        ;;
+    *)
+        MVN_PLUGIN="jira-maven-plugin"
+        ;;
+esac
+
+# Check for conflicts between AMPS version and plugin artifact ID in plugin pom file #
+#                                                                                    #
+# AMPS Version | Artifact Name       | Error                                         #
+# -------------+---------------------+-------------------------                      #
+#  >= 8.0      | <PROD>-maven-plugin | No error                                      #
+#  < 8.0       | maven-<PROD>-plugin | No error                                      #
+#  < 8.0       | <PROD>-maven-plugin | Error (*)                                     #
+#  >= 8.0      | maven-<PROD>-plugin | Error                                         #
+#                                                                                    #
+#  (*) except bitbucket-maven-plugin                                                 #
+
+printErrorsAndExit ()
+{
+    echo "[ERROR] Invalid of Atlassian maven plugin(s) detected for AMPS Version $2: $1"
+    echo "[ERROR] Try using <amps.version>$3</amps.version> in the project pom.xml"
+    echo "[ERROR] Visit https://ecosystem.atlassian.net/browse/ATLASSDK-147 for more information"
+    exit 1
+}
+
+    if [ -e pom.xml ]; then
+        case create-jira4-plugin in
+            run|debug|*-plugin-module|integration-test)
+                OLD_PLUGIN_ARTIFACT_ID=$(echo "${RESOLVED_AMPS_PLUGINS}" | grep -E "com\.atlassian\.maven\.plugins:.*${OLD_PLUGIN_REGEX}" | head -n 1 | sed "s/.*com\.atlassian\.maven\.plugins:\([^:]*\):.*/\1/")
+                NEW_PLUGIN_ARTIFACT_ID=$(echo "${RESOLVED_AMPS_PLUGINS}" | grep -E "com\.atlassian\.maven\.plugins:.*${NEW_PLUGIN_REGEX}" | head -n 1 | sed "s/.*com\.atlassian\.maven\.plugins:\([^:]*\):.*/\1/")
+
+                case $AMPS_PLUGIN_VERSION in
+                    4.*|5.*|6.*|7.*)
+                        if [ ! -z "$NEW_PLUGIN_ARTIFACT_ID" ]
+                        then
+                            printErrorsAndExit "$NEW_PLUGIN_ARTIFACT_ID" "$AMPS_PLUGIN_VERSION" "8.0.0"
+                        fi
+                        ;;
+                    *)
+                        if [ ! -z "$OLD_PLUGIN_ARTIFACT_ID" ]
+                        then
+                            printErrorsAndExit "$OLD_PLUGIN_ARTIFACT_ID" "$AMPS_PLUGIN_VERSION" "6.3.21"
+                        fi
+                        ;;
+                esac
+                MVN_PLUGIN=${NEW_PLUGIN_ARTIFACT_ID:-$OLD_PLUGIN_ARTIFACT_ID}
+                ;;
+        esac
+    fi
+
+export MVN_PLUGIN
+MVN_COMMAND="com.atlassian.maven.plugins:${MVN_PLUGIN}:${AMPS_PLUGIN_VERSION}:create_v4"
+
+# Execute Maven #
+
+echo "Executing: ${MAVEN_EXECUTABLE} ${MVN_COMMAND} ${MVN_PARAMS}"
+sh -c "${MAVEN_EXECUTABLE} ${MVN_COMMAND} ${MVN_PARAMS}"

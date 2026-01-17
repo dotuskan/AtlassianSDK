@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.atlassian.plugins</groupId>
+        <artifactId>atlassian-plugins-osgi-testrunner-parent</artifactId>
+        <version>2.0.9</version>
+    </parent>
+
+    <artifactId>atlassian-plugins-osgi-testrunner</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Atlassian Plugins TestRunner</name>
+
+    <!--
+    This module is a test-scope dependency of plugins being tested.
+    According to https://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html,
+    dependencies in 'compile' and 'runtime' scope will be pulled to the test scope of the plugin being tested and by default
+    bundled in the final -test JAR.
+    There's no way how dependency defined here can enforce 'provided' scope in the final test plugin. This can only be configured in the final POM.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- provided by AMPS when starting the host app -->
+            <groupId>org.apache.servicemix.bundles</groupId>
+            <artifactId>org.apache.servicemix.bundles.junit</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- in DMZ since Platform 7 -->
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-core-asl</artifactId>
+        </dependency>
+        <dependency>
+            <!-- not in Platform -->
+            <groupId>org.apache.wink</groupId>
+            <artifactId>wink-client</artifactId>
+        </dependency>
+        <dependency>
+            <!-- in DMZ since Platform 7 -->
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+        <dependency>
+            <!-- provided by platform-public-api -->
+            <groupId>com.atlassian.upm</groupId>
+            <artifactId>upm-api</artifactId>
+        </dependency>
+        <dependency>
+            <!-- in DMZ since Platform 7 -->
+            <groupId>javax.ws.rs</groupId>
+            <artifactId>jsr311-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?><project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>javax.jms</groupId>
+  <artifactId>jms</artifactId>
+  <version>1.1</version>
+  <description>Manually deployed JMS by Mark C</description>
+</project>

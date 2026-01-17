@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.atlassian.amps</groupId>
+        <artifactId>atlassian-amps-parent</artifactId>
+        <version>9.1.1</version>
+    </parent>
+
+    <artifactId>plugin-module-codegen-maven-client</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Plugin Module Code Generator Maven Client</name>
+    <description>The Maven client for AMPS' plugin module generation feature.</description>
+
+    <properties>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../${jacoco.report.file}</sonar.coverage.jacoco.xmlReportPaths>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.atlassian.amps</groupId>
+            <artifactId>plugin-module-codegen-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.atlassian.amps</groupId>
+            <artifactId>plugin-module-codegen-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-shared-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-interactivity-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+        </dependency>
+    </dependencies>
+</project>
